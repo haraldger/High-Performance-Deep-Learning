@@ -41,12 +41,12 @@ class Bottleneck(nn.Module):
     def __init__(self, in_channels, out_channels, stride=1) -> None:
         super().__init__()
 
-        self.conv1 = nn.Conv2d(in_channels, 64, kernel_size=1, stride=stride, padding=0)
-        self.bn1 = nn.BatchNorm2d(64)
+        self.conv1 = nn.Conv2d(in_channels, out_channels//4, kernel_size=1, stride=stride, padding=0)
+        self.bn1 = nn.BatchNorm2d(out_channels//4)
         self.relu = nn.ReLU()
-        self.conv2 = nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1)
-        self.bn2 = nn.BatchNorm2d(64)
-        self.conv3 = nn.Conv2d(64, out_channels, kernel_size=1, stride=1, padding=0)
+        self.conv2 = nn.Conv2d(out_channels//4, out_channels//4, kernel_size=3, stride=1, padding=1)
+        self.bn2 = nn.BatchNorm2d(out_channels//4)
+        self.conv3 = nn.Conv2d(out_channels//4, out_channels, kernel_size=1, stride=1, padding=0)
         self.bn3 = nn.BatchNorm2d(out_channels)
         
         self.downsample = None
@@ -79,7 +79,7 @@ class Bottleneck(nn.Module):
         return out
     
 class ResNet(nn.Module):
-    def __init__(self, block_type, layers) -> None:
+    def __init__(self, block_type, layers, large_mode=False) -> None:
         super().__init__()
         self.block_type = block_type
         
@@ -90,11 +90,27 @@ class ResNet(nn.Module):
         # Max pooling after the batch normalization layer
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
+        # Output channels
+        if large_mode:
+            output_channels = [256, 512, 1024, 2048]
+        else:
+            output_channels = [64, 128, 256, 512]
+
         # ResNet layers
-        self.layer1 = self.make_layer(64, 64, layers[0])
-        self.layer2 = self.make_layer(64, 128, layers[1])
-        self.layer3 = self.make_layer(128, 256, layers[2])
-        self.layer4 = self.make_layer(256, 512, layers[3])
+        self.layer1 = self.make_layer(64, output_channels[0], layers[0])
+        self.layer2 = self.make_layer(output_channels[0], output_channels[1], layers[1])
+        self.layer3 = self.make_layer(output_channels[1], output_channels[2], layers[2])
+        self.layer4 = self.make_layer(output_channels[2], output_channels[3], layers[3])
+
+        # Prediction head
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        if large_mode:
+            self.fc = nn.Linear(2048, 1000)
+        else:
+            self.fc = nn.Linear(512, 1000)
+        self.softmax = nn.Softmax(dim=1)
+
+
 
 
         
@@ -109,6 +125,12 @@ class ResNet(nn.Module):
         out = self.layer2(out)
         out = self.layer3(out)
         out = self.layer4(out)
+
+        # Prediction head
+        out = self.avgpool(out)
+        out = torch.flatten(out, 1)
+        out = self.fc(out)
+        out = self.softmax(out)
 
         # Return learned features
         return out
@@ -131,6 +153,8 @@ class ResNet(nn.Module):
         return nn.Sequential(*blocks)
 
     
+# Plain ResNets
+
 def resnet18():
     return ResNet(BasicBlock, [2, 2, 2, 2])
 
@@ -138,47 +162,141 @@ def resnet34():
     return ResNet(BasicBlock, [3, 4, 6, 3])
 
 def resnet50():
-    return ResNet(Bottleneck, [3, 4, 6, 3])
+    return ResNet(BasicBlock, [3, 4, 6, 3])
 
 def resnet101():
-    return ResNet(Bottleneck, [3, 4, 23, 3])
+    return ResNet(BasicBlock, [3, 4, 23, 3])
 
 def resnet152():
-    return ResNet(Bottleneck, [3, 8, 36, 3])
+    return ResNet(BasicBlock, [3, 8, 36, 3])
+
+
+
+# ResNets with bottleneck blocks
+
+def resnet18_bottleneck():
+    return ResNet(Bottleneck, [2, 2, 2, 2])
+
+def resnet34_bottleneck():
+    return ResNet(Bottleneck, [3, 4, 6, 3])
+
+def resnet50_bottleneck():
+    return ResNet(Bottleneck, [3, 4, 6, 3], large_mode=True)
+
+def resnet101_bottleneck():
+    return ResNet(Bottleneck, [3, 4, 23, 3], large_mode=True)
+
+def resnet152_bottleneck():
+    return ResNet(Bottleneck, [3, 8, 36, 3], large_mode=True)
 
 
 # Test the network
 
-def test_network_and_output_shapes():
+def test_plain_resnet_models_forward():
     net = resnet18()
     x = torch.randn(2, 3, 224, 224)
     y = net(x)
     print(f'ResNet18 network = {net}')
-    print(f'ResNet18 output shape = {y.shape}')
 
     net = resnet34()
     y = net(x)
     print(f'ResNet34 network = {net}')
-    print(f'ResNet34 output shape = {y.shape}')
 
     net = resnet50()
     y = net(x)
     print(f'ResNet50 network = {net}')
-    print(f'ResNet50 output shape = {y.shape}')
 
     net = resnet101()
     y = net(x)
     print(f'ResNet101 network = {net}')
-    print(f'ResNet101 output shape = {y.shape}')
 
     net = resnet152()
     y = net(x)
     print(f'ResNet152 network = {net}')
-    print(f'ResNet152 output shape = {y.shape}')
+
+def test_bottleneck_resnet_models_forward():
+    net = resnet18_bottleneck()
+    x = torch.randn(2, 3, 224, 224)
+    y = net(x)
+    print(f'ResNet18 network = {net}')
+
+    net = resnet34_bottleneck()
+    y = net(x)
+    print(f'ResNet34 network = {net}')
+
+    net = resnet50_bottleneck()
+    y = net(x)
+    print(f'ResNet50 network = {net}')
+
+    net = resnet101_bottleneck()
+    y = net(x)
+    print(f'ResNet101 network = {net}')
+
+    net = resnet152_bottleneck()
+    y = net(x)
+    print(f'ResNet152 network = {net}')
+
+def test_plain_resnet_models_shapes():
+    net = resnet18()
+    x = torch.randn(2, 3, 224, 224)
+    y = net(x)
+    print(f'ResNet18 shapes = {y.shape}')
+    assert y.shape == (2, 1000)
+
+    net = resnet34()
+    y = net(x)
+    print(f'ResNet34 shapes = {y.shape}')
+    assert y.shape == (2, 1000)
+
+    net = resnet50()
+    y = net(x)
+    print(f'ResNet50 shapes = {y.shape}')
+    assert y.shape == (2, 1000)
+
+    net = resnet101()
+    y = net(x)
+    print(f'ResNet101 shapes = {y.shape}')
+    assert y.shape == (2, 1000)
+
+    net = resnet152()
+    y = net(x)
+    print(f'ResNet152 shapes = {y.shape}')
+    assert y.shape == (2, 1000)
+
+def test_bottleneck_resnet_models_shapes():
+    net = resnet18_bottleneck()
+    x = torch.randn(2, 3, 224, 224)
+    y = net(x)
+    print(f'ResNet18 shapes = {y.shape}')
+    assert y.shape == (2, 1000)
+
+    net = resnet34_bottleneck()
+    y = net(x)
+    print(f'ResNet34 shapes = {y.shape}')
+    assert y.shape == (2, 1000)
+
+    net = resnet50_bottleneck()
+    y = net(x)
+    print(f'ResNet50 shapes = {y.shape}')
+    assert y.shape == (2, 1000)
+
+    net = resnet101_bottleneck()
+    y = net(x)
+    print(f'ResNet101 shapes = {y.shape}')
+    assert y.shape == (2, 1000)
+
+    net = resnet152_bottleneck()
+    y = net(x)
+    print(f'ResNet152 shapes = {y.shape}')
+    assert y.shape == (2, 1000)
 
 
 def main():
-    test_network_and_output_shapes()
+    test_plain_resnet_models_forward()
+    test_bottleneck_resnet_models_forward()
+    test_plain_resnet_models_shapes()
+    test_bottleneck_resnet_models_shapes()
+    
 
 if __name__ == '__main__':
     main()
