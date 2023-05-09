@@ -180,14 +180,16 @@ def resnet18_bottleneck():
 def resnet34_bottleneck():
     return ResNet(Bottleneck, [3, 4, 6, 3])
 
-def resnet50_bottleneck():
-    return ResNet(Bottleneck, [3, 4, 6, 3], large_mode=True)
+def resnet50_bottleneck(large_mode=False):
+    return ResNet(Bottleneck, [3, 4, 6, 3], large_mode=large_mode)
 
-def resnet101_bottleneck():
-    return ResNet(Bottleneck, [3, 4, 23, 3], large_mode=True)
+def resnet101_bottleneck(large_mode=False):
+    return ResNet(Bottleneck, [3, 4, 23, 3], large_mode=large_mode)
 
-def resnet152_bottleneck():
-    return ResNet(Bottleneck, [3, 8, 36, 3], large_mode=True)
+def resnet152_bottleneck(large_mode=False):
+    return ResNet(Bottleneck, [3, 8, 36, 3], large_mode=large_mode)
+
+
 
 
 # Test the network
