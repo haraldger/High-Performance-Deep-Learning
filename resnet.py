@@ -105,9 +105,9 @@ class ResNet(nn.Module):
         # Prediction head
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
         if large_mode:
-            self.fc = nn.Linear(2048, 1000)
+            self.fc = nn.Linear(2048, 100)
         else:
-            self.fc = nn.Linear(512, 1000)
+            self.fc = nn.Linear(512, 100)
         self.softmax = nn.Softmax(dim=1)
 
 
