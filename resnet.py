@@ -108,7 +108,7 @@ class ResNet(nn.Module):
             self.fc = nn.Linear(2048, 100)
         else:
             self.fc = nn.Linear(512, 100)
-        self.softmax = nn.Softmax(dim=1)
+        self.softmax = nn.Softmax(dim=-1)
 
 
 
