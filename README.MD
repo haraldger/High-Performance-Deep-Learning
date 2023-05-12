@@ -9,3 +9,4 @@ and study how the execution times and memory footprints are affected as the netw
 we profile memory and execution times, and we profile data loading. This is done on CPU as well as on GPU for comparison.
 
 To try our project, execute any of the notebooks in this repository, or simply read them for our results.
+Make sure that you read the analysis in our notebooks at the end of every file.
