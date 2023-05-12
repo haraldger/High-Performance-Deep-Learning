@@ -17,4 +17,4 @@ Make sure that you read the analysis in our notebooks at the end of every file. 
 - dataloaders.ipynb
 - model_training.ipynb
 
-Additionally, see attached trace files for more detailed view of execution and kernel computations.
+Additionally, see attached trace files for more detailed view of execution and kernel computations. Do also look at our resnet.py and vgg16.py files for implementation details.
