@@ -12,5 +12,9 @@ To try our project, execute any of the notebooks in this repository, or simply r
 Make sure that you read the analysis in our notebooks at the end of every file. Suggested notebook order:
 - cpu_forward.ipynb
 - gpu_forward.ipynb
+- memory_profiling.ipynb
+- resnet_profiling.ipynb
 - dataloaders.ipynb
 - model_training.ipynb
+
+Additionally, see attached trace files for more detailed view of execution and kernel computations.
